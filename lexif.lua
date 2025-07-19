@@ -1,23 +1,8 @@
-#!/usr/bin/env luajit
 -- TITLE: Image Exif Info Manage Program
 -- DATE: 2025-07-18 00:13:29
 -- TODO: 
 
--- local lfs = require'lfs'
---
--- local function list_files(path)
--- 	local files = {}
--- 	for file in lfs.dir(path) do
--- 		if file ~= "." and file ~= ".." then
--- 			local fullpath = path .. '/' .. file
--- 			local attr = lfs.attributes(fullpath)
--- 			if attr and attr.mode == "file" then
--- 				table.insert(files, fullpath)
--- 			end
--- 		end
--- 	end
--- end
---
+local m = require'lim'
 
 --// run_command(command)
 local function run_command(command)
@@ -80,6 +65,9 @@ if optname == '-l' then
 	list_info(optargs)
 elseif optname == '-s' then
 	search_info(optargs)
+elseif optname == '-f' then
+	local res = m.lsf('.','*.jpg')
+	for _,f in ipairs(res) do print(f) end
 else
 	show_help()
 end
