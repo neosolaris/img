@@ -1,11 +1,14 @@
 -- TITLE: Image Exif Info Manage Program
 -- DATE: 2025-07-18 00:13:29
 -- TODO: 
--- - getopt 적용하기
+-- - getopt 적용하기, search_info를 더 정교하게 하고 -i 옵션도 처리할 수 있도록 하자, 코드 효율화
+-- + exiftool 존재 여부 체크
 -- - metadata 만들고 이를 관리하기: 보류: 그림 파일마다 메타데이터가 다르다. csv 시 문제 발생
 -- - ImageDescription 위주로 관리하는 것이 바람직, 아니면 내가 필요한 요소 몇개만 테이블로 관리가 바람직
+-- REQUIREMENT:
+-- - exiftool
 
-local getopt = require'getopt'
+--local getopt = require'getopt'
 local m = require'lim'
 
 local p = m.path(arg[0])
@@ -23,29 +26,35 @@ local function list_info(optargs)
 	m.printl(m.cmd(cmd))
 end
 
+-- search info by keywords
 local function search_info(optargs)
-	local cmd = ''
-	if #optargs == 0 then
-		print('-> search_info: No Keyword!')
-		return
-	end
-
-	if #optargs == 1 then
-		local files = list_imgfiles({'.'})
-		for file in files:lines() do
-			cmd = 'exiftool ' ..file.. ' | grep -i ' .. optargs[1]
-			local result = m.cmd(cmd)
-			if result and result:match("^%s*$") == nil then
-				print('==>',file)
-				print(result)
+	optargs = optargs or {}
+	local res = m.cmd("exiftool -s -s -ImageDescription .")
+	local fname, desc
+	-- line parsing
+	for i,line in ipairs(res) do
+		if line:find('^=') then
+			fname = string.match(line, "^=+%s+(.*)$")
+		else
+			desc = string.match(line, "^ImageDescription:%s*(.*)")
+		end
+		-- filtering filename, imagedescription from each 2 lines
+		if i % 2 == 0 and fname and desc then
+			-- search keys in fname, desc
+			if next(optargs) then
+				for key in m.each(optargs) do
+					if fname:find(string.lower(key)) or desc:find(string.lower(key)) then
+						print(fname .. ' : ' .. desc)
+					end
+				end
+			else
+				print(fname .. ' : ' .. desc)
 			end
 		end
-	else
-		cmd = 'exiftool ' ..optargs[2].. ' | grep -i ' .. optargs[1]
-		local result = m.cmd(cmd)
-		print(result)
 	end
 end
+
+
 
 local function get_imgdesc(optargs)
 	local cmd_pre = 'exiftool -s -s -s -ImageDescription'
@@ -127,7 +136,7 @@ local function show_help()
 	"  -l <files>  list exif info",
 	"  -i <files>  show ImageDescription info",
 	"  -I <files>  edit ImageDescription info",
-	"  -s <keyword> <files>  search exif info",
+	"  -s <keyword> <path> search exif info (no keyword: show ImageDesciption all files)",
 	"  -m {img_dir} create metadata.csv from img_dir",
 }
 	m.printl(list)
@@ -136,6 +145,16 @@ end
 -----------------------------------------------------------------
 -- # Main
 -----------------------------------------------------------------
+-- check exiftool installed
+local is_exif = m.which('exiftool')
+m.printf('check exiftool: ')
+if not is_exif then
+	print('Fail')
+	print('[exiftool] is not exist. Install first, please!')
+	os.exit(1)
+end
+print('OK')
+
 local optname = arg[1]
 local optargs = {select(2,unpack(arg))}
 
