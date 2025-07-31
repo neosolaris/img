@@ -8,7 +8,6 @@
 -- REQUIREMENT:
 -- - exiftool
 
---local getopt = require'getopt'
 local m = require'lim'
 
 local p = m.path(arg[0])
@@ -154,6 +153,7 @@ if not is_exif then
 	os.exit(1)
 end
 print('OK')
+
 
 local optname = arg[1]
 local optargs = {select(2,unpack(arg))}
