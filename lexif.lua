@@ -206,13 +206,13 @@ local function get_imgdesc(res, keys)
 				for key in m.each(keys) do
 					local ikey = m.ipattern(key)
 					if fname:find(ikey) or desc:find(ikey) then
-						print(fname .. ' : ' .. desc)
+						-- print(fname .. ' : ' .. desc)
 						table.insert(result, fname .. ' : ' .. desc)
 						total = total + 1
 					end
 				end
 			else
-				print(fname .. ' : ' .. desc)
+				-- print(fname .. ' : ' .. desc)
 				table.insert(result, fname .. ' : ' .. desc)
 				total = total + 1
 			end
@@ -221,7 +221,6 @@ local function get_imgdesc(res, keys)
 	end
 	return result
 end
-
 
 local function list_exifinfo(args)
 	local cmd = ''
@@ -233,32 +232,43 @@ local function list_exifinfo(args)
 		cmd = 'exiftool ' .. table.concat(args,' ')
 	end
 
-	local result = (mio.cmd(cmd))
+	local result = mio.cmd(cmd)
+
 	for _,v in ipairs(result) do
 		print(v)
 	end
-	print('total: ' .. #result)
-	print(cmd)
+	--print(cmd)
 end
 
 local function list_imgdesc(args)
-	local cmd_exif = 'exiftool -s -s -s -ImageDescription '
 	local cmd_exif = 'exiftool '
 	local cmd
 	args = args or {}
 
 	if #args == 0 then
 		cmd = cmd_exif .. '.'
+	elseif #args == 1 then
+		if mio.isdir(args[1]) then
+			cmd = cmd_exif .. args[1]
+		elseif mio.isfile(args[1]) then
+			cmd = cmd_exif .. '-s -s -s -ImageDescription ' .. args[1]
+			local res = mio.cmd(cmd)
+			print(args[1] .. ' : ' .. res[1])
+			os.exit(0)
+		else
+		 	print("list_imgdesc(): It's not dir or file: " .. args[1])
+			os.exit(1)
+		end
 	else
 		cmd = cmd_exif .. table.concat(args,' ')
 	end
 
-	local res = (mio.cmd(cmd))
+	local res = mio.cmd(cmd)
 	local result = get_imgdesc(res)
 	for _,v in ipairs(result) do
 		print(v)
 	end
-	print(cmd)
+	--print(cmd)
 end
 
 local help = [[
@@ -275,10 +285,10 @@ Long description .....
 Options:
 
   -h, --help         display this help, then exit
-  -e, --edit         Edit ImageDescription
-  -f, --files        List image files
-  -i, --info         List exif all info data
-  -l, --list         List exif ImageDescription
+  -e, --edit         Edit ImageDescription (dir or file[s])
+  -f, --files        List image files (dir)
+  -i, --info         List exif all info data (dir or file[s])
+  -l, --list         List exif ImageDescription (dir or file[s])
   -s, --search=KEY   Search ImageDescription
       --version      display version information, then exit
   -v, --view         View ImageDescription
