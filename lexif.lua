@@ -10,8 +10,7 @@
 
 local optparse = require'optparse'
 --local m = require'lim'
-local mio = require'mio'
-local mstr = require'mstr'
+local m = require'mlib'
 
 local function list_info(optargs)
 	local cmd = ''
@@ -151,9 +150,9 @@ end
 local function list_files()
 	local filelist = {}
 	local exts = {'.jpg','.png','.tif'}
-	local filter = function(p) return mio.filter_ext(p,exts) end
+	local filter = function(p) return m.filter_ext(p,exts) end
 	local ok, result = pcall(function()
-		mio.lsf('.',filelist,filter)
+		m.lsf('.',filelist,filter)
 	end)
 
 	if not ok then
@@ -196,7 +195,7 @@ local function get_imgdesc(res, keys)
 			fname = string.match(line, "^=+%s+(.*)$")
 		elseif line:find('^Image Description') then
 			--desc = string.match(line, "%s*:%s*(.+)")
-			desc = mstr.getval(line, '^Image Description', ':')
+			desc = m.getval(line, '^Image Description', ':')
 			TAG = true
 		end
 		-- filtering filename, imagedescription from each 2 lines
@@ -232,8 +231,41 @@ local function list_exifinfo(args)
 		cmd = 'exiftool ' .. table.concat(args,' ')
 	end
 
-	local result = mio.cmd(cmd)
+	local result, ecode = m.run(cmd)
 
+	if ecode ~= 0 then
+		print('--> list_exifinfo():error:')
+	end
+
+	-- show output
+	for _, l in ipairs(result) do print(l) end
+end
+
+local function list_imgdesc(args)
+	local cmd_exif = 'exiftool '
+	local cmd
+	args = args or {}
+
+	if #args == 0 then
+		cmd = cmd_exif .. '.'
+	elseif #args == 1 then
+		if m.isdir(args[1]) then
+			cmd = cmd_exif .. args[1]
+		elseif m.isfile(args[1]) then
+			cmd = cmd_exif .. '-s -s -s -ImageDescription ' .. args[1]
+			local res = m.cmd(cmd)
+			print(args[1] .. ' : ' .. res[1])
+			os.exit(0)
+		else
+		 	print("list_imgdesc(): It's not dir or file: " .. args[1])
+			os.exit(1)
+		end
+	else
+		cmd = cmd_exif .. table.concat(args,' ')
+	end
+
+	local res = m.cmd(cmd)
+	local result = get_imgdesc(res)
 	for _,v in ipairs(result) do
 		print(v)
 	end
@@ -248,11 +280,11 @@ local function list_imgdesc(args)
 	if #args == 0 then
 		cmd = cmd_exif .. '.'
 	elseif #args == 1 then
-		if mio.isdir(args[1]) then
+		if m.isdir(args[1]) then
 			cmd = cmd_exif .. args[1]
-		elseif mio.isfile(args[1]) then
+		elseif m.isfile(args[1]) then
 			cmd = cmd_exif .. '-s -s -s -ImageDescription ' .. args[1]
-			local res = mio.cmd(cmd)
+			local res = m.cmd(cmd)
 			print(args[1] .. ' : ' .. res[1])
 			os.exit(0)
 		else
@@ -263,13 +295,14 @@ local function list_imgdesc(args)
 		cmd = cmd_exif .. table.concat(args,' ')
 	end
 
-	local res = mio.cmd(cmd)
+	local res = m.cmd(cmd)
 	local result = get_imgdesc(res)
 	for _,v in ipairs(result) do
 		print(v)
 	end
 	--print(cmd)
 end
+
 
 local help = [[
 lexif (Lua Exif Imagedescription Tool) v0.1
@@ -300,7 +333,7 @@ Options:
 -- # Main
 -----------------------------------------------------------------
 -- check exiftool installed
-local is_exif = mio.cmd('which exiftool')
+local is_exif = m.cmd('which exiftool')
 if not is_exif then
 	print('Check exiftool: Fail!')
 	print('[exiftool] is not exist. Install first, please!')
