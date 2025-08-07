@@ -25,7 +25,7 @@ local function list_info(optargs)
 end
 
 -- search info by keywords
-local function search_info_(optargs)
+local function search_info(optargs)
 	optargs = optargs or {}
 	local res = m.cmd("exiftool -s -s -ImageDescription .")
 	local fname, fname_lower, desc, desc_lower
@@ -97,6 +97,22 @@ local function show_imgdesc(optargs)
 	m.printl(get_imgdesc(optargs))
 end
 
+local function get_imgfiles(dir)
+	dir = dir or '.'
+	local filelist = {}
+	local exts = {'.jpg','.png','.tif'}
+	local filter = function(p) return m.filter_ext(p,exts) end
+	local ok, result = pcall(function()
+		m.lsf(dir,filelist,filter)
+	end)
+
+	if not ok then
+		print(result)
+	else
+		return filelist
+	end
+end
+
 local function cid(file)
 	if not file then return false end
 	-- show input
@@ -108,29 +124,34 @@ local function cid(file)
 	m.printl(m.cmd(cmd))
 end
 
-local function change_imgdesc(optargs)
-	if #optargs == 0 then
-		local files = list_imgfiles(optargs)
+local function edit_imgdesc(args)
+	args = args or {}
+	if #args == 0 then
+		local files = get_imgfiles('.')
 		for file in m.iterlist(files) do
 			cid(file)
 		end
-	elseif #optargs == 1 then
-		if m.isdir(optargs[1]) then
-			path = optargs[1]
-			local files = m.lfs(path)
+	elseif #args == 1 then
+		if m.isdir(args[1]) then
+			local path = args[1]
+			local files = get_imgfiles(args[1])
 			for _,file in ipairs(files) do
 				cid(file)
 			end
-		elseif m.isfile(optargs[1]) then
-			--print(optargs[1], 'is file!')
-			cid(optargs[1])
+		elseif m.isfile(args[1]) then
+			--print(args[1], 'is file!')
+			cid(args[1])
 		else
-			print('--> optargs is wrong!')
+			print('--> args is wrong!')
 			os.exit(1)
 		end
 	else
-		for file in m.each(optargs) do
-			cid(file)
+		for _,file in ipairs(args) do
+			if m.isfile(file) then
+				cid(file)
+			else
+				print('error: not file' .. file)
+			end
 		end
 	end
 end
@@ -147,21 +168,15 @@ local function create_metacsv(optargs)
 	if result then print("--> create_metacsv(): metadata.csv created!") end
 end
 
-local function list_files()
-	local filelist = {}
-	local exts = {'.jpg','.png','.tif'}
-	local filter = function(p) return m.filter_ext(p,exts) end
-	local ok, result = pcall(function()
-		m.lsf('.',filelist,filter)
-	end)
+local function list_files(dir)
+	dir = dir or '.'
+	local files = get_imgfiles(dir)
 
-	if not ok then
-		print(result)
-	else
-		for _, file in ipairs(filelist) do
+	if next(files) then
+		for _, file in ipairs(files) do
 			print(file)
 		end
-		print('\ntotal: ', #filelist)
+		print('\ntotal: ', #files)
 	end
 end
 
@@ -239,37 +254,6 @@ local function list_exifinfo(args)
 
 	-- show output
 	for _, l in ipairs(result) do print(l) end
-end
-
-local function list_imgdesc(args)
-	local cmd_exif = 'exiftool '
-	local cmd
-	args = args or {}
-
-	if #args == 0 then
-		cmd = cmd_exif .. '.'
-	elseif #args == 1 then
-		if m.isdir(args[1]) then
-			cmd = cmd_exif .. args[1]
-		elseif m.isfile(args[1]) then
-			cmd = cmd_exif .. '-s -s -s -ImageDescription ' .. args[1]
-			local res = m.cmd(cmd)
-			print(args[1] .. ' : ' .. res[1])
-			os.exit(0)
-		else
-		 	print("list_imgdesc(): It's not dir or file: " .. args[1])
-			os.exit(1)
-		end
-	else
-		cmd = cmd_exif .. table.concat(args,' ')
-	end
-
-	local res = m.cmd(cmd)
-	local result = get_imgdesc(res)
-	for _,v in ipairs(result) do
-		print(v)
-	end
-	--print(cmd)
 end
 
 local function list_imgdesc(args)
