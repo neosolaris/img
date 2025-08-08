@@ -132,13 +132,13 @@ local function edit_imgdesc(args)
 			cid(file)
 		end
 	elseif #args == 1 then
-		if m.isdir(args[1]) then
+		if m.is_dir(args[1]) then
 			local path = args[1]
 			local files = get_imgfiles(args[1])
 			for _,file in ipairs(files) do
 				cid(file)
 			end
-		elseif m.isfile(args[1]) then
+		elseif m.is_file(args[1]) then
 			--print(args[1], 'is file!')
 			cid(args[1])
 		else
@@ -147,7 +147,7 @@ local function edit_imgdesc(args)
 		end
 	else
 		for _,file in ipairs(args) do
-			if m.isfile(file) then
+			if m.is_file(file) then
 				cid(file)
 			else
 				print('error: not file' .. file)
